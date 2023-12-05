@@ -1,0 +1,37 @@
+model {
+  
+  ## Looping on each experimental run
+  for (j in 1:n_experiments) {
+  
+    ## Prior for latent variable x1
+    x[1, j] ~ dnorm(0, 1/100) #x1 in jth exp.
+
+    ## Prior for latent variable x2
+    x[2, j] ~ dnorm(x[1, j], tau) #x1 in jth exp.
+
+    ## Prior for latent variables x3 and onwards
+    for (i in 3:n_concentrations) {
+      x[i, j] ~ dnorm(2*x[i-1, j] - x[i-2, j], tau)
+    }
+    
+    m[1,j] <- 0. ## Define m[1]=0 for jth exp.
+    
+    ## Obtain m values and mu for each concentration
+    for (i in 1:n_concentrations) { 
+      m[i+1,j]<- m[i,j] - exp(x[i,j]) ##Calculate mi
+      mu[i, j] <- exp(m[i, j]) ## Calculate mu
+    }
+    
+    # Prior for Expected effect at zero dose, Mj
+    M[j] ~ dunif(0, 4000)
+
+    # Looping over the data in jth experimental run
+    for (i in 1:n_concentrations) {
+      Y[i, j] ~ dnorm(M[j] * mu[i, j], tau_o)
+    }
+  }
+
+  tau ~ dgamma(4, 0.04) ## Prior for precision tau
+  tau_o ~ dgamma(4, 0.04) ## Prior for precision tau_o
+}
+
